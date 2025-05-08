@@ -1,69 +1,98 @@
-# Welcome to your Lovable project
+# Custom Rug Builder
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/48e6d04a-b9da-49ef-ac1f-c7a8583df005
+This is an interactive web application that allows users to design and customize their own rugs. The Custom Rug Builder provides a step-by-step interface for users to select materials, colors, borders, and sizes to create their perfect rug.
 
-## How can I edit this code?
+## How to Set Up and Run the Project Locally
 
-There are several ways of editing your application.
+This project requires Node.js & npm to be installed on your system. If you don't have them installed, you can [install Node.js from the official website](https://nodejs.org/).
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/48e6d04a-b9da-49ef-ac1f-c7a8583df005) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Follow these steps to set up and run the project:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Step 1: Navigate to the project directory
+cd path/to/custom-rug-builder
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Step 2: Install the necessary dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 3: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+After running these commands, the application will be available at http://localhost:8080 in your web browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Features
 
-**Use GitHub Codespaces**
+The Custom Rug Builder offers a comprehensive set of features to help users design their perfect rug:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Multi-step Design Process**: Guided workflow through material selection, border options, and sizing
+- **Material Selection**: Choose from a variety of natural materials including jute, sisal, seagrass, coir, wool, and sisool
+- **Border Customization**: Options for border types, widths, materials, and colors
+- **Size Configuration**: Select from standard sizes or specify custom dimensions
+- **Moodboard**: Save multiple rug designs for comparison and future reference
+- **Visual Feedback**: Interactive UI that updates as selections are made
 
-## What technologies are used for this project?
+## Technology Stack
 
-This project is built with .
+This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **React** with **TypeScript** - For a robust, type-safe UI
+- **Vite** - Fast development server and build tool
+- **Tailwind CSS** - Utility-first CSS framework for responsive design
+- **shadcn/ui** - High-quality UI components built on Radix UI
+- **@tanstack/react-query** - For efficient data fetching and state management
+- **lucide-react** - Beautiful, consistent icon set
 
-## How can I deploy this project?
+## Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/48e6d04a-b9da-49ef-ac1f-c7a8583df005) and click on Share -> Publish.
+The project follows a modular component architecture with a focus on small, reusable components:
 
-## I want to use a custom domain - is that possible?
+```
+src/
+├── components/     # UI components
+│   ├── ui/         # shadcn/ui components
+│   └── RugBuilder.tsx  # Main rug builder component
+├── hooks/          # Custom React hooks
+├── lib/            # Utility functions and helpers
+├── pages/          # Page components
+└── App.tsx         # Main application entry point
+```
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Coding Standards
+
+This project adheres to the following coding standards:
+
+- Small, focused components (under 50 lines where possible)
+- TypeScript for all JavaScript/React files
+- Responsive design using Tailwind CSS
+- Consistent error handling with toast notifications
+- Comprehensive console logging for debugging
+
+## Deployment
+
+To deploy this project to a production environment, you can use services like:
+
+- Netlify
+- Vercel
+- GitHub Pages
+
+To build the project for production:
+
+```sh
+npm run build
+```
+
+This will generate optimized files in the `dist` directory that can be deployed to any static hosting service.
+
+## Future Development
+
+Planned enhancements for the Custom Rug Builder include:
+
+- 3D visualization of rug designs
+- Expanded material and color options
+- Price calculation based on selections
+- User accounts for saving designs
+- Integration with e-commerce functionality
+- Mobile app version

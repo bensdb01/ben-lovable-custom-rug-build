@@ -1,20 +1,31 @@
 
 import { useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import NotificationBar from "@/components/NotificationBar";
-import Hero from "@/components/Hero";
-import Gallery from "@/components/Gallery";
-import Testimonials from "@/components/Testimonials";
-import CTASection from "@/components/CTASection";
-import Footer from "@/components/Footer";
-import MaterialCard from "@/components/MaterialCard";
-import FeatureCard from "@/components/FeatureCard";
-import ScrollAnimation from "@/components/ScrollAnimation";
-import EnhancedRugBuilder from "@/components/EnhancedRugBuilder";
-import BlogSection from "@/components/BlogSection";
-import HelpHub from "@/components/HelpHub";
-import WorkWithSection from "@/components/WorkWithSection";
 import { Truck, Package, Timer, Shield, ThumbsUp, Palette } from "lucide-react";
+import RugBuilder from "@/components/RugBuilder";
+import MaterialCard from "@/components/MaterialCard";
+import ScrollAnimation from "@/components/ScrollAnimation";
+
+// Simple feature card component for this page
+interface FeatureCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  delay?: number;
+}
+
+const FeatureCard = ({ icon: Icon, title, description, delay }: FeatureCardProps) => {
+  return (
+    <div className="bg-card rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center mb-4">
+        <div className="mr-4 bg-primary/10 p-2 rounded-full">
+          <Icon className="h-6 w-6 text-primary" />
+        </div>
+        <h3 className="font-medium text-lg">{title}</h3>
+      </div>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
+  );
+};
 
 // Material images
 const materialImages = {
@@ -40,37 +51,36 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <NotificationBar />
-      <Navbar />
-      <Hero />
+      <header className="py-4 border-b">
+        <div className="container mx-auto">
+          <h1 className="text-2xl font-bold">Custom Rug Builder</h1>
+        </div>
+      </header>
       
-      {/* Moved the rug builder higher */}
-      <EnhancedRugBuilder />
+      <main>
+        <RugBuilder />
       
-      {/* Moved testimonials higher */}
-      <Testimonials />
-      
-      {/* Materials Section */}
-      <section id="materials" className="py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <ScrollAnimation>
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-3xl md:text-4xl font-serif mb-4">Natural Materials</h2>
-              <p className="text-muted-foreground">
-                We use only the finest natural fibers, each with unique properties and characteristics. Explore our range to find the perfect material for your home.
-              </p>
-            </div>
-          </ScrollAnimation>
-          
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <MaterialCard
-              name="Jute"
-              description="Soft, durable, and versatile, ideal for low-traffic areas like bedrooms and living rooms."
-              image={materialImages.jute}
-              features={[
-                "Naturally soft underfoot",
-                "Beautiful natural golden color",
-                "Sustainable and biodegradable",
+        {/* Materials Section */}
+        <section id="materials" className="py-20">
+          <div className="container mx-auto px-4 md:px-6">
+            <ScrollAnimation>
+              <div className="text-center max-w-2xl mx-auto mb-12">
+                <h2 className="text-3xl md:text-4xl font-serif mb-4">Natural Materials</h2>
+                <p className="text-muted-foreground">
+                  We use only the finest natural fibers, each with unique properties and characteristics. Explore our range to find the perfect material for your home.
+                </p>
+              </div>
+            </ScrollAnimation>
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <MaterialCard
+                name="Jute"
+                description="Soft, durable, and versatile, ideal for low-traffic areas like bedrooms and living rooms."
+                image={materialImages.jute}
+                features={[
+                  "Naturally soft underfoot",
+                  "Beautiful natural golden color",
+                  "Sustainable and biodegradable",
                 "Ideal for living rooms and bedrooms"
               ]}
               delay={100}
@@ -164,58 +174,59 @@ const Index = () => {
             </div>
           </ScrollAnimation>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={Truck}
-              title="Free UK Delivery"
-              description="We offer free delivery on all our rugs, no matter the size or weight, to anywhere in the UK mainland."
-              delay={100}
-            />
-            
-            <FeatureCard
-              icon={Package}
-              title="Free Samples"
-              description="Request free material samples to help you choose the perfect texture and color for your space."
-              delay={200}
-            />
-            
-            <FeatureCard
-              icon={Timer}
-              title="Quick Turnaround"
-              description="Most custom rugs are ready within 2-3 weeks, so you won't have to wait long for your perfect rug."
-              delay={300}
-            />
-            
-            <FeatureCard
-              icon={Shield}
-              title="Quality Guarantee"
-              description="We stand behind the quality of every rug we make with our comprehensive satisfaction guarantee."
-              delay={400}
-            />
-            
-            <FeatureCard
-              icon={ThumbsUp}
-              title="Expert Guidance"
-              description="Our team of experienced design consultants is always on hand to help you make the right choice."
-              delay={500}
-            />
-            
-            <FeatureCard
-              icon={Palette}
-              title="Bespoke Design"
-              description="Create a truly unique rug with our custom design service, tailored to your exact specifications."
-              delay={600}
-            />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <FeatureCard
+                icon={Truck}
+                title="Free UK Delivery"
+                description="We offer free delivery on all our rugs, no matter the size or weight, to anywhere in the UK mainland."
+                delay={100}
+              />
+              
+              <FeatureCard
+                icon={Package}
+                title="Free Samples"
+                description="Request free material samples to help you choose the perfect texture and color for your space."
+                delay={200}
+              />
+              
+              <FeatureCard
+                icon={Timer}
+                title="Quick Turnaround"
+                description="Most custom rugs are ready within 2-3 weeks, so you won't have to wait long for your perfect rug."
+                delay={300}
+              />
+              
+              <FeatureCard
+                icon={Shield}
+                title="Quality Guarantee"
+                description="We stand behind the quality of every rug we make with our comprehensive satisfaction guarantee."
+                delay={400}
+              />
+              
+              <FeatureCard
+                icon={ThumbsUp}
+                title="Expert Guidance"
+                description="Our team of experienced design consultants is always on hand to help you make the right choice."
+                delay={500}
+              />
+              
+              <FeatureCard
+                icon={Palette}
+                title="Bespoke Design"
+                description="Create a truly unique rug with our custom design service, tailored to your exact specifications."
+                delay={600}
+              />
+            </div>
           </div>
-        </div>
-      </section>
-      
-      <Gallery />
-      <WorkWithSection />
-      <BlogSection />
-      <HelpHub />
-      <CTASection />
-      <Footer />
+        </section>
+        
+        {/* Footer */}
+        <footer className="py-8 border-t mt-20">
+          <div className="container mx-auto px-4 text-center">
+            <p className="text-muted-foreground">© {new Date().getFullYear()} Custom Rug Builder. All rights reserved.</p>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 };
