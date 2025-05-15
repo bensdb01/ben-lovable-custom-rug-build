@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import RugBuilder from "./components/RugBuilder";
+import { RugDataProvider } from "./components/RugDataProvider";
 
 const queryClient = new QueryClient();
 
@@ -13,7 +14,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <div className="min-h-screen bg-background">
-        <RugBuilder />
+        <RugDataProvider>
+          <RugBuilder />
+        </RugDataProvider>
       </div>
     </TooltipProvider>
   </QueryClientProvider>

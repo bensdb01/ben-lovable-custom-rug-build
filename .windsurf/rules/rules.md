@@ -30,6 +30,91 @@ The Custom Rug Builder is an interactive web application that allows users to de
 - Use PascalCase for component names (e.g., `RugBuilder`, `MaterialCard`)
 - Use descriptive names that reflect the component's purpose
 
+## Data Architecture
+
+### CSV Data Structure
+- **Location**: `/public/carpet_data.csv` - Main data source for all rug materials and options
+- **Data Format**: CSV file with columns for material categories, ranges, colors, images, and other attributes
+
+### Data Processing Flow
+1. **Column Mappings**: Defined in `/src/lib/config/column-mappings.ts` to make the CSV parser flexible
+2. **Data Loading**: Implemented in `/src/lib/data/data-loader.ts` which provides functions to parse the CSV
+3. **Data Hook**: Custom hook in `/src/lib/hooks/useRugData.ts` that fetches and processes the CSV
+4. **Context Provider**: `RugDataProvider` in `/src/components/RugDataProvider.tsx` wraps the app to provide data
+
+### Key Data Components
+
+#### Column Mappings Configuration
+The `column-mappings.ts` file defines how CSV columns map to application data structures:
+```typescript 
+export const columnMappings = {
+  materialCategory: "Filter - Material",
+  materialRange: "Product Group Name",
+  materialColor: "Manufacturer Colour Name",
+  thumbnailImage: "100px Swatch Tiny",
+  // Additional mappings can be added when needed
+};
+```
+
+#### Data Loader
+The `data-loader.ts` provides functions to fetch and process the CSV data:
+```typescript
+// Fetch and parse CSV data into structured format
+export async function fetchCsvData(csvPath: string): Promise<Product[]> {
+  const response = await fetch(csvPath);
+  const csvText = await response.text();
+  return getProductsFromCsv(csvText);
+}
+
+// Extract unique material categories from products
+export function getMaterialCategories(products: Product[]): MaterialCategory[] {
+  // Generates a unique list of material categories with IDs and names
+}
+
+// Group products by category and range for the UI
+export function getMaterialRanges(products: Product[]): MaterialRanges {
+  // Organizes products into a hierarchical structure by category and range
+}
+```
+
+Key functionality:
+- `fetchCsvData`: Fetches and parses raw CSV data from the public folder
+- `getProductsFromCsv`: Converts CSV rows to structured product objects using column mappings
+- `getMaterialCategories`: Extracts unique material categories for the UI navigation
+- `getMaterialRanges`: Groups products by category and range for efficient access
+
+#### useRugData Hook
+The custom hook in `useRugData.ts` centralizes data fetching and processing:
+```typescript
+export function useRugData(csvPath: string = '/carpet_data.csv'): RugDataResult {
+  // Uses react-query to fetch and cache CSV data
+  // Processes raw data into categories, ranges, and products
+  // Provides loading states, error handling, and refresh functionality
+}
+```
+
+Key features:
+- Fetches CSV data using react-query for caching and background updates
+- Processes data into categories, ranges, and colors for the UI
+- Manages loading and error states with appropriate feedback
+- Provides refresh functionality for data updates
+
+#### RugDataProvider Component
+The context provider in `RugDataProvider.tsx` makes data available throughout the app:
+```typescript
+export function RugDataProvider({ children, csvPath = '/carpet_data.csv' }) {
+  // Uses useRugData hook to fetch and process data
+  // Provides getProductImage helper function for image paths
+  // Wraps the application in a context provider
+}
+```
+
+Main purpose:
+- Uses the useRugData hook to load and manage CSV data
+- Creates helper functions like getProductImage for accessing swatch images
+- Provides a context accessible to all child components
+- Centralizes data access patterns for consistent behavior
+
 ## RugBuilder Component
 
 ### Core Functionality
@@ -39,8 +124,23 @@ The `RugBuilder` component is the central feature of the application, providing 
 3. Select rug size (standard sizes or custom dimensions)
 4. Review and save their design to a moodboard
 
+### Integration with CSV Data
+- Uses the `RugDataContext` to access material categories, ranges, and product data
+- Dynamically builds the material selection UI based on data from the CSV
+- Displays product thumbnail images from paths defined in the CSV
+- Updates the main product card image when a color swatch is selected
+- Always defaults to selecting the first color of each range automatically
+- Uses the following pattern for image paths:
+  ```typescript
+  // Function to get the image path for a product swatch
+  const getProductImage = (category: string, rangeName: string, color: string) => {
+    // Find the matching product in the CSV data
+    // Return the thumbnail image URL from the CSV
+  };
+  ```
+
 ### State Management
-- Use React's `useState` hook to manage the rug configuration state
+- Uses React's `useState` hook to manage the rug configuration state
 - Structure the state object with clear, nested properties:
   ```typescript
   {
@@ -50,90 +150,4 @@ The `RugBuilder` component is the central feature of the application, providing 
       range: string;
       color: string;
     };
-    border: {
-      type: string;
-      width: string;
-      material: string;
-      color: string;
-    };
-    size: {
-      option: string;
-      width?: number;
-      length?: number;
-      shape?: string;
-    }
-  }
-  ```
-
-### UI Structure
-- **Step Navigation**: Provide clear navigation between steps with progress indicators
-- **Material Selection**: Use grid or list views for material options
-- **Color Selection**: Display color swatches with names and hex values
-- **Border Options**: Show border types with visual representations
-- **Size Selection**: Offer standard sizes and custom size inputs
-- **Moodboard**: Allow users to save multiple rug designs for comparison
-
-## UI/UX Guidelines
-
-### Layout
-- Use responsive design principles with Tailwind CSS
-- Implement mobile-first approach with appropriate breakpoints
-- Maintain consistent spacing and alignment
-
-### Typography
-- Use a clear hierarchy with different font sizes for headings and body text
-- Maintain readable line heights and letter spacing
-- Use the font stack: Inter for UI elements, Playfair Display for headings
-
-### Colors
-- Follow a consistent color scheme using Tailwind's color palette
-- Use semantic color naming in the UI (primary, secondary, muted, etc.)
-- Ensure sufficient contrast for accessibility
-
-### Interactive Elements
-- Provide clear visual feedback for interactive elements (hover, focus, active states)
-- Use consistent button styles across the application
-- Implement smooth transitions and animations for state changes
-
-### Accessibility
-- Ensure proper keyboard navigation
-- Use appropriate ARIA attributes
-- Maintain sufficient color contrast
-- Provide alternative text for images
-
-## Material Data Structure
-```typescript
-// Material categories
-const materialCategories = [
-  { id: "jute", name: "Jute", description: "Soft, durable, and versatile natural fiber" },
-  { id: "sisal", name: "Sisal", description: "Strong, resilient fiber in various colors and weaves" },
-  // Additional categories...
-];
-
-// Material ranges for each category
-const materialRanges = {
-  jute: [
-    { id: "jute-boucle", name: "Jute Boucle", colors: ["Natural", "Bleached", "Grey"] },
-    // Additional ranges...
-  ],
-  // Additional categories...
-};
-```
-
-## Error Handling and Feedback
-- Use toast notifications to inform users about actions and errors
-- Include console logs for debugging purposes
-- Provide clear validation messages for user inputs
-- Guide users through the process with helpful tooltips and information
-
-## Performance Considerations
-- Optimize component rendering with appropriate React patterns
-- Lazy-load components and assets when possible
-- Use memoization for expensive calculations
-- Implement virtualization for long lists
-
-## Development Practices
-- Write clean, self-documenting code with appropriate comments
-- Follow TypeScript best practices with proper type definitions
-- Use consistent code formatting
-- Test components thoroughly before implementation
+    

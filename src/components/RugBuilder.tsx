@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRugDataContext } from "@/lib/context/RugDataContext";
 import { Button } from "@/components/ui/button";
 import { Check, InfoIcon, ChevronRight, ArrowLeft, HelpCircle, X, Grid, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,54 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetClose, SheetContent, SheetOverlay, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
-// Material categories
-const materialCategories = [
-  { id: "jute", name: "Jute", description: "Soft, durable, and versatile natural fiber" },
-  { id: "sisal", name: "Sisal", description: "Strong, resilient fiber in 15 different colors and weaves" },
-  { id: "seagrass", name: "Seagrass", description: "Hardwearing, stain-resistant natural fiber" },
-  { id: "coir", name: "Coir", description: "Tough, moisture-resistant coconut fiber" },
-  { id: "wool", name: "Wool", description: "Soft, insulating, and naturally flame-retardant" },
-  { id: "sisool", name: "Sisool", description: "A blend of sisal and wool, combining durability with softness" }
-];
-
-// Material ranges for each category
-const materialRanges = {
-  jute: [
-    { id: "jute-boucle", name: "Jute Boucle", colors: ["Natural", "Bleached", "Grey"] },
-    { id: "jute-herringbone", name: "Jute Herringbone", colors: ["Natural", "Bleached"] },
-    { id: "jute-panama", name: "Jute Panama", colors: ["Natural", "Gold", "Bronze"] }
-  ],
-  sisal: [
-    { id: "sisal-boucle", name: "Sisal Boucle", colors: ["Limestone", "Pewter", "Brass", "Bronze", "Silver"] },
-    { id: "sisal-herringbone", name: "Sisal Herringbone", colors: ["Natural", "Slate", "Charcoal", "Taupe"] },
-    { id: "sisal-panama", name: "Sisal Panama", colors: ["Wheat", "Linen", "Safari", "Gazelle", "Zebra"] },
-    { id: "sisal-basketweave", name: "Sisal Basketweave", colors: ["Natural", "Titanium", "Gravel"] }
-  ],
-  seagrass: [
-    { id: "seagrass-herringbone", name: "Seagrass Herringbone", colors: ["Natural"] },
-    { id: "seagrass-basketweave", name: "Seagrass Basketweave", colors: ["Natural"] },
-    { id: "seagrass-panama", name: "Seagrass Panama", colors: ["Natural"] }
-  ],
-  coir: [
-    { id: "coir-standard", name: "Coir Standard", colors: ["Natural"] },
-    { id: "coir-panama", name: "Coir Panama", colors: ["Natural"] }
-  ],
-  wool: [
-    { id: "wool-berber", name: "Wool Berber", colors: ["Natural", "Ivory", "Cream", "Stone", "Slate"] },
-    { id: "wool-loop", name: "Wool Loop", colors: ["Soft White", "Taupe", "Oatmeal", "Pebble", "Charcoal"] },
-    { id: "wool-chunky", name: "Wool Chunky", colors: ["Ivory", "Grey", "Beige", "Brown"] }
-  ],
-  sisool: [
-    { id: "sisool-weave", name: "Sisool Weave", colors: ["Natural", "Cream", "Linen"] }
-  ]
-};
-
-// Filter types for the full-screen view
-const filterCategories = {
-  colors: ["Natural", "Black", "White", "Grey", "Brown", "Blue", "Green", "Red"],
-  roomTypes: ["Living Room", "Dining Room", "Bedroom", "Office", "Hallway", "Stairs"],
-  weaveTypes: ["Boucle", "Herringbone", "Panama", "Basketweave", "Chunky", "Loop"]
-};
+// Border options and other static data remain hardcoded
 
 // Border options
 const borderTypes = [
@@ -136,6 +90,15 @@ interface MoodboardItem extends RugOptions {
 }
 
 const RugBuilder = () => {
+  // Get data from CSV context
+  const { 
+    isLoading, 
+    error, 
+    materialCategories,
+    materialRanges,
+    filterCategories,
+    getProductImage
+  } = useRugDataContext();
   const [options, setOptions] = useState<RugOptions>({
     step: 1,
     material: {
@@ -164,6 +127,8 @@ const RugBuilder = () => {
   
   // Add view state for the material overlay
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  // Loading and error states will be handled in the render method
 
   // Material selection overlay states
   const [materialOverlayOpen, setMaterialOverlayOpen] = useState(false);
@@ -212,19 +177,28 @@ const RugBuilder = () => {
   };
 
   const handleMaterialRangeSelect = (rangeId: string) => {
+    // Find the range object
+    const category = options.material.category || selectedCategory;
+    const rangeObj = category ? materialRanges[category]?.find(r => r.id === rangeId) : null;
+    
+    // Get the first color if available
+    const firstColor = rangeObj && rangeObj.colors.length > 0 ? rangeObj.colors[0] : "";
+    
     setOptions({
       ...options,
       material: {
         ...options.material,
         range: rangeId,
-        color: ""
+        // Set the first color by default
+        color: firstColor
       }
     });
-    // We don't change tab anymore since we handle selection in the overlay
-    setSelectedColorIndex(null);
+    
+    // Default to selecting the first color (index 0)
+    setSelectedColorIndex(0);
   };
 
-  const handleMaterialColorSelect = (color: string, index: number) => {
+  const handleMaterialColorSelect = (color: string, index: number, closeOverlay: boolean = false) => {
     setOptions({
       ...options,
       material: {
@@ -233,8 +207,10 @@ const RugBuilder = () => {
       }
     });
     setSelectedColorIndex(index);
-    // Close overlay after full selection is complete
-    setMaterialOverlayOpen(false);
+    // Only close overlay if explicitly requested
+    if (closeOverlay) {
+      setMaterialOverlayOpen(false);
+    }
   };
 
   // Fix the handleNextStep function to properly navigate to next step
@@ -587,6 +563,32 @@ const RugBuilder = () => {
     });
   };
 
+  // Handle loading and error states
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading rug data...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] p-8 text-destructive">
+        <p className="font-medium mb-2">Error loading rug data</p>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+  
   return (
     <section id="process" className="py-20 bg-gray-50">
       <div className="container mx-auto px-4 md:px-6">
@@ -1208,6 +1210,8 @@ const RugBuilder = () => {
               </Button>
             </div>
             
+            {/* No preview section here - as requested */}
+            
             <div className="p-4 border-b bg-gray-50 sticky top-0 z-10">
               <div className="flex flex-wrap gap-2">
                 <div className="flex items-center mr-4">
@@ -1316,14 +1320,37 @@ const RugBuilder = () => {
                       className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
-                        <div 
-                          className="w-full h-full"
-                          style={{ 
-                            backgroundColor: range.id.includes("natural") ? "#D6C7A9" : 
-                                            range.id.includes("grey") ? "#A9A9A9" : 
-                                            "#D6C7A9" 
-                          }}
-                        />
+                        {/* Use the selected color's image or the first color by default */}
+                        {(() => {
+                          // Get the selected color or default to first color
+                          const isRangeSelected = options.material.range === range.id;
+                          const colorToShow = isRangeSelected && options.material.color ? options.material.color : range.colors[0];
+                          
+                          // Get the image for this color
+                          const imageSrc = getProductImage(selectedCategory, range.name, colorToShow);
+                          
+                          return imageSrc ? (
+                            <img 
+                              src={imageSrc}
+                              alt={`${range.name} - ${colorToShow}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback if image fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.style.backgroundColor = "#D6C7A9";
+                              }}
+                            />
+                          ) : (
+                            <div 
+                              className="w-full h-full"
+                              style={{ 
+                                backgroundColor: range.id.includes("natural") ? "#D6C7A9" : 
+                                              range.id.includes("grey") ? "#A9A9A9" : 
+                                              "#D6C7A9" 
+                              }}
+                            />
+                          );
+                        })()}
                       </div>
                       
                       <div className="p-3">
@@ -1336,24 +1363,54 @@ const RugBuilder = () => {
                           </div>
                         </div>
                         
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {range.colors.map((color, index) => (
-                            <div
-                              key={`${color}-${index}`}
-                              onClick={() => {
-                                handleMaterialRangeSelect(range.id);
-                                handleMaterialColorSelect(color, index);
-                              }}
-                              className={`border border-gray-200 ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : ''} rounded-full w-6 h-6 cursor-pointer transition-all hover:scale-110`}
-                              style={{ 
-                                backgroundColor: color === "Natural" ? "#D6C7A9" : 
-                                              color === "Bleached" ? "#E8E4D9" :
-                                              color === "Grey" ? "#A9A9A9" : 
-                                              "#D6C7A9",
-                              }}
-                              title={color}
-                            />
-                          ))}
+                         <div className="mt-3 flex flex-wrap gap-2">
+                          {range.colors.map((color, index) => {
+                            // Try to get product image using the context helper
+                            const swatchImage = getProductImage(
+                              selectedCategory || "", 
+                              range.name,
+                              color
+                            );
+                            
+                            return (
+                              <div
+                                key={`${color}-${index}`}
+                                onClick={() => {
+                                  handleMaterialRangeSelect(range.id);
+                                  handleMaterialColorSelect(color, index, false); // Keep overlay open
+                                }}
+                                className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : 'border-gray-200'} rounded-full w-8 h-8 cursor-pointer transition-all hover:scale-110`}
+                                title={color}
+                              >
+                                {swatchImage ? (
+                                  <img 
+                                    src={swatchImage} 
+                                    alt={color}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to color if image fails to load
+                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.parentElement!.style.backgroundColor = 
+                                        color === "Natural" ? "#D6C7A9" : 
+                                        color === "Bleached" ? "#E8E4D9" :
+                                        color === "Grey" ? "#A9A9A9" : 
+                                        "#D6C7A9";
+                                    }}
+                                  />
+                                ) : (
+                                  <div 
+                                    className="w-full h-full"
+                                    style={{ 
+                                      backgroundColor: color === "Natural" ? "#D6C7A9" : 
+                                                    color === "Bleached" ? "#E8E4D9" :
+                                                    color === "Grey" ? "#A9A9A9" : 
+                                                    "#D6C7A9",
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                         
                         <Button
@@ -1379,14 +1436,39 @@ const RugBuilder = () => {
                       className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <div className="flex">
-                        <div 
-                          className="w-32 h-24"
-                          style={{ 
-                            backgroundColor: range.id.includes("natural") ? "#D6C7A9" : 
-                                          range.id.includes("grey") ? "#A9A9A9" : 
-                                          "#D6C7A9" 
-                          }}
-                        />
+                        <div className="w-32 h-24 overflow-hidden">
+                          {/* Use the selected color's image or the first color by default */}
+                          {(() => {
+                            // Get the selected color or default to first color
+                            const isRangeSelected = options.material.range === range.id;
+                            const colorToShow = isRangeSelected && options.material.color ? options.material.color : range.colors[0];
+                            
+                            // Get the image for this color
+                            const imageSrc = getProductImage(selectedCategory, range.name, colorToShow);
+                            
+                            return imageSrc ? (
+                              <img 
+                                src={imageSrc}
+                                alt={`${range.name} - ${colorToShow}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Fallback if image fails to load
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement!.style.backgroundColor = "#D6C7A9";
+                                }}
+                              />
+                            ) : (
+                              <div 
+                                className="w-full h-full"
+                                style={{ 
+                                  backgroundColor: range.id.includes("natural") ? "#D6C7A9" : 
+                                                range.id.includes("grey") ? "#A9A9A9" : 
+                                                "#D6C7A9" 
+                                }}
+                              />
+                            );
+                          })()}
+                        </div>
                         
                         <div className="p-3 flex-1">
                           <div className="flex justify-between items-start">
@@ -1399,23 +1481,53 @@ const RugBuilder = () => {
                           </div>
                           
                           <div className="mt-3 flex flex-wrap gap-1">
-                            {range.colors.slice(0, 8).map((color, index) => (
-                              <div
-                                key={`${color}-${index}`}
-                                onClick={() => {
-                                  handleMaterialRangeSelect(range.id);
-                                  handleMaterialColorSelect(color, index);
-                                }}
-                                className={`border border-gray-200 ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : ''} rounded-full w-5 h-5 cursor-pointer`}
-                                style={{ 
-                                  backgroundColor: color === "Natural" ? "#D6C7A9" : 
-                                                color === "Bleached" ? "#E8E4D9" :
-                                                color === "Grey" ? "#A9A9A9" : 
-                                                "#D6C7A9",
-                                }}
-                                title={color}
-                              />
-                            ))}
+                            {range.colors.slice(0, 8).map((color, index) => {
+                              // Try to get product image using the context helper
+                              const swatchImage = getProductImage(
+                                selectedCategory || "", 
+                                range.name,
+                                color
+                              );
+                              
+                              return (
+                                <div
+                                  key={`${color}-${index}`}
+                                  onClick={() => {
+                                    handleMaterialRangeSelect(range.id);
+                                    handleMaterialColorSelect(color, index, false); // Keep overlay open
+                                  }}
+                                  className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : 'border-gray-200'} rounded-full w-6 h-6 cursor-pointer transition-all hover:scale-110`}
+                                  title={color}
+                                >
+                                  {swatchImage ? (
+                                    <img 
+                                      src={swatchImage} 
+                                      alt={color}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        // Fallback to color if image fails to load
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement!.style.backgroundColor = 
+                                          color === "Natural" ? "#D6C7A9" : 
+                                          color === "Bleached" ? "#E8E4D9" :
+                                          color === "Grey" ? "#A9A9A9" : 
+                                          "#D6C7A9";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div 
+                                      className="w-full h-full"
+                                      style={{ 
+                                        backgroundColor: color === "Natural" ? "#D6C7A9" : 
+                                                      color === "Bleached" ? "#E8E4D9" :
+                                                      color === "Grey" ? "#A9A9A9" : 
+                                                      "#D6C7A9",
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
                             {range.colors.length > 8 && (
                               <span className="text-xs text-muted-foreground ml-1 flex items-center">
                                 +{range.colors.length - 8} more
