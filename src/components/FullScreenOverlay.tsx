@@ -135,34 +135,115 @@ const FullScreenOverlay = ({
               <Button variant="ghost" size="icon" onClick={() => setMaterialOverlayOpen(false)}><X className="h-4 w-4" /></Button>
             </div>
 
-            <div className="p-4 border-b bg-gray-50 sticky top-[calc(3.5rem+1px)] z-10"> 
-              <div className="flex flex-wrap gap-2">
-                <div className="flex items-center mr-4"><span className="text-sm font-medium mr-2">Material:</span></div>
+            <div className="p-4 border-b bg-gray-50 sticky top-[calc(3.5rem+1px)] z-10">
+              <div className="grid grid-cols-[auto,1fr] gap-4">
+                {/* Material Filter */}
+                <div className="text-sm font-medium whitespace-nowrap pt-1">Material:</div>
                 <div className="flex flex-wrap gap-2">
-                  <Button key="all-materials" variant={!selectedCategory || selectedCategory === 'all' ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory('all')} className="text-xs h-8">All Materials</Button>
-                  {materialCategories.map(cat => <Button key={cat.id} variant={selectedCategory === cat.id ? "default" : "outline"} size="sm" onClick={() => setSelectedCategory(cat.id)} className="text-xs h-8">{cat.name}</Button>)}
+                  <Button 
+                    key="all-materials" 
+                    variant={!selectedCategory || selectedCategory === 'all' ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => setSelectedCategory('all')} 
+                    className="text-xs h-8"
+                  >
+                    All Materials
+                  </Button>
+                  {materialCategories.map(cat => (
+                    <Button 
+                      key={cat.id} 
+                      variant={selectedCategory === cat.id ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => setSelectedCategory(cat.id)} 
+                      className="text-xs h-8"
+                    >
+                      {cat.name}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Color Filter */}
+                <div className="text-sm font-medium whitespace-nowrap pt-1">Colour:</div>
+                <div className="flex flex-wrap gap-3 items-center pl-2">
+                  {filterCategories.colors.map(color => (
+                    <div 
+                      key={color} 
+                      onClick={() => handleColorFilterToggle(color)} 
+                      className={`relative w-8 h-8 rounded-full cursor-pointer transition-all ${
+                        activeFilters[color] 
+                          ? 'scale-110 ring-2 ring-offset-2 ring-brand-sage/90' 
+                          : 'opacity-60 hover:opacity-100 hover:scale-110'
+                      }`}
+                      style={{ 
+                        backgroundColor: getColorHex(color),
+                        boxShadow: activeFilters[color] 
+                          ? '0 2px 8px rgba(0, 0, 0, 0.25)' 
+                          : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.2s ease-in-out',
+                        border: activeFilters[color] 
+                          ? '2px solid white' 
+                          : '2px solid rgba(0, 0, 0, 0.1)'
+                      }} 
+                      title={color}
+                    >
+                      {activeFilters[color] && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-sage rounded-full border-2 border-white" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Room Filter */}
+                <div className="text-sm font-medium whitespace-nowrap pt-1">Room:</div>
+                <div className="flex flex-wrap gap-2">
+                  {filterCategories.roomTypes.map(room => (
+                    <Button 
+                      key={room} 
+                      variant={activeFilters[room] ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => handleRoomFilterToggle(room)} 
+                      className="text-xs h-8"
+                    >
+                      {room}
+                    </Button>
+                  ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <div className="flex items-center mr-4"><span className="text-sm font-medium mr-2">Colour:</span></div>
-                <div className="flex flex-wrap gap-2">
-                  {filterCategories.colors.map(color => <div key={color} onClick={() => handleColorFilterToggle(color)} className={`w-6 h-6 rounded-full cursor-pointer border transition-all ${activeFilters[color] ? 'ring-2 ring-offset-2 ring-brand-sage border-transparent scale-110' : 'border-gray-300 hover:scale-110'}`} style={{ backgroundColor: getColorHex(color), boxShadow: activeFilters[color] ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }} title={color} />)}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <div className="flex items-center mr-4"><span className="text-sm font-medium mr-2">Room:</span></div>
-                <div className="flex flex-wrap gap-2">
-                  {filterCategories.roomTypes.map(room => <Button key={room} variant={activeFilters[room] ? "default" : "outline"} size="sm" onClick={() => handleRoomFilterToggle(room)} className="text-xs h-8">{room}</Button>)}
-                </div>
-              </div>
+
               <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setActiveFilters({})}>Clear All</Button>
-                  <span className="text-xs text-muted-foreground">{Object.values(activeFilters).filter(Boolean).length} filters applied</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs h-8" 
+                    onClick={() => {
+                      setActiveFilters({});
+                      setSelectedCategory('all');
+                    }}
+                  >
+                    Clear All Filters
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {Object.values(activeFilters).filter(Boolean).length} filter{Object.values(activeFilters).filter(Boolean).length !== 1 ? 's' : ''} applied
+                  </span>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="text-xs h-8 flex items-center gap-1" onClick={() => setViewMode("grid")}><Grid className="h-3 w-3" />Grid</Button>
-                  <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="text-xs h-8 flex items-center gap-1" onClick={() => setViewMode("list")}><List className="h-3 w-3" />List</Button>
+                  <Button 
+                    variant={viewMode === "grid" ? "default" : "ghost"} 
+                    size="sm" 
+                    className="text-xs h-8 flex items-center gap-1" 
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <Grid className="h-3 w-3" /> Grid
+                  </Button>
+                  <Button 
+                    variant={viewMode === "list" ? "default" : "ghost"} 
+                    size="sm" 
+                    className="text-xs h-8 flex items-center gap-1" 
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-3 w-3" /> List
+                  </Button>
                 </div>
               </div>
             </div>
