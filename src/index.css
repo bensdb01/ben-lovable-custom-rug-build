@@ -34,6 +34,33 @@
     --ring: 175 15% 60%;
 
     --radius: 0.5rem;
+    
+    /* Rug Color Variables */
+    --color-natural: #D6C7A9;
+    --color-brown: #8B4513;
+    --color-beige: #F5F5DC;
+    --color-red: #B22222;
+    --color-grey: #808080;
+    --color-black: #222222;
+    --color-green: #2E8B57;
+    --color-blue: #4682B4;
+    --color-cream: #FFFDD0;
+    --color-orange: #FF8C00;
+    --color-white: #F8F8FF;
+    --color-yellow: #FFD700;
+    --color-purple: #800080;
+    --color-pink: #FFC0CB;
+    --color-gold: #D4AF37;
+    --color-silver: #C0C0C0;
+    --color-tan: #D2B48C;
+    --color-charcoal: #36454F;
+    --color-navy: #000080;
+    --color-forest: #228B22;
+    --color-burgundy: #800020;
+    --color-stone: #A9A9A9;
+    --color-flax: #EEDC82;
+    --color-mushroom: #8B8589;
+    --color-slate: #708090;
   }
   
   * {

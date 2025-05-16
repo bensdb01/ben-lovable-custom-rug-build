@@ -27,11 +27,30 @@ export function adaptRugData(
   };
   
   return {
-    // Return a function to get product image by category, range, and color
+    // Return a function to get product image by category, range, and color with improved error handling
     getProductImage: (category: string, range: string, colorName: string): string | undefined => {
-      const imageMap = getProductImageMap();
-      const key = `${category.toLowerCase()}_${range.toLowerCase()}_${colorName.toLowerCase()}`;
-      return imageMap[key];
+      try {
+        if (!category || !range || !colorName) {
+          console.error('getProductImage: Missing required parameter', { category, range, colorName });
+          return undefined;
+        }
+
+        const imageMap = getProductImageMap();
+        const key = `${category.toLowerCase()}_${range.toLowerCase()}_${colorName.toLowerCase()}`;
+        const imagePath = imageMap[key];
+        
+        if (!imagePath) {
+          console.warn(`getProductImage: No image found for ${category}/${range}/${colorName}`);
+          return undefined;
+        }
+        
+        // Return successfully found image path
+        console.log(`getProductImage: Found image for ${category}/${range}/${colorName}:`, imagePath);
+        return imagePath;
+      } catch (error) {
+        console.error('getProductImage: Error getting product image:', error);
+        return undefined;
+      }
     },
     
     // Products filtered by being enabled for the rug builder
