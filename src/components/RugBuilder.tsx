@@ -97,7 +97,8 @@ const RugBuilder = () => {
     materialCategories,
     materialRanges,
     filterCategories,
-    getProductImage
+    getProductImage,
+    products
   } = useRugDataContext();
   const [options, setOptions] = useState<RugOptions>({
     step: 1,
@@ -142,6 +143,8 @@ const RugBuilder = () => {
   
   const [activeTab, setActiveTab] = useState("category");
   const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
+  // Force component re-renders when needed
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const handleStepChange = (step: number) => {
     setOptions({...options, step});
@@ -199,14 +202,26 @@ const RugBuilder = () => {
   };
 
   const handleMaterialColorSelect = (color: string, index: number, closeOverlay: boolean = false) => {
-    setOptions({
-      ...options,
+    console.log(`Selecting color: ${color} at index: ${index}`);
+    
+    // First set the color index for immediate UI feedback
+    setSelectedColorIndex(index);
+    
+    // Update material color in options state
+    setOptions(prevOptions => ({
+      ...prevOptions,
       material: {
-        ...options.material,
+        ...prevOptions.material,
         color
       }
-    });
-    setSelectedColorIndex(index);
+    }));
+    
+    // Force re-render with a slight delay to ensure state updates have propagated
+    setTimeout(() => {
+      setForceUpdate(prev => prev + 1);
+      console.log(`Force update triggered after selecting ${color}`);
+    }, 50);
+    
     // Only close overlay if explicitly requested
     if (closeOverlay) {
       setMaterialOverlayOpen(false);
@@ -535,32 +550,120 @@ const RugBuilder = () => {
 
   // Function to filter ranges based on active filters
   const getFilteredRanges = () => {
-    if (!selectedCategory) return [];
+    // If all materials should be shown (no category selected)
+    if (!selectedCategory || selectedCategory === 'all') {
+      // Get all ranges from all material categories, but ensure we don't have duplicates
+      // We need to be careful here to ensure we don't have duplicate range names
+      const allRanges: { id: string; name: string; colors: string[] }[] = [];
+      const processedRangeNames = new Set<string>();
+      
+      // Process ranges from all categories, avoiding duplicates
+      Object.values(materialRanges).forEach(categoryRanges => {
+        categoryRanges.forEach(range => {
+          // Only add if we haven't seen this range name before
+          if (!processedRangeNames.has(range.name)) {
+            processedRangeNames.add(range.name);
+            allRanges.push(range);
+          }
+        });
+      });
+      
+      // If no filters active, return all ranges
+      if (Object.values(activeFilters).filter(Boolean).length === 0) {
+        return allRanges;
+      }
+      
+      // Filter based on active filters
+      return allRanges.filter(range => {
+        return matchesActiveFilters(range);
+      });
+    }
     
+    // Get ranges for the selected category
     const ranges = materialRanges[selectedCategory as keyof typeof materialRanges] || [];
     
-    // If no filters are active, return all ranges
+    // If no filters are active, return all ranges for the selected category
     if (Object.values(activeFilters).filter(Boolean).length === 0) {
       return ranges;
     }
     
-    // Simple filter implementation - in a real app would be more sophisticated
+    // Filter ranges based on active filters
     return ranges.filter(range => {
-      // Example: filter by color availability
-      const hasMatchingColor = range.colors.some(color => 
-        activeFilters[color] || 
-        Object.keys(activeFilters).some(filter => 
-          filter.toLowerCase() === color.toLowerCase() && activeFilters[filter]
+      return matchesActiveFilters(range);
+    });
+  };
+  
+  // Helper function to check if a range matches the active filters
+  const matchesActiveFilters = (range: { id: string; name: string; colors: string[] }) => {
+    // Get lists of active filters by type
+    const activeColors = Object.keys(activeFilters).filter(key => 
+      activeFilters[key] && filterCategories.colors.includes(key)
+    );
+    
+    const activeRooms = Object.keys(activeFilters).filter(key => 
+      activeFilters[key] && filterCategories.roomTypes.includes(key)
+    );
+    
+    const activeWeaves = Object.keys(activeFilters).filter(key => 
+      activeFilters[key] && filterCategories.weaveTypes.includes(key)
+    );
+    
+    // If no filters active, always show the range
+    if (activeColors.length === 0 && activeRooms.length === 0 && activeWeaves.length === 0) {
+      return true;
+    }
+    
+    // Find all products for this range in the current category context  
+    const rangeProducts = products.filter(product => 
+      product.range.toLowerCase() === range.name.toLowerCase() &&
+      (selectedCategory === 'all' || product.category.toLowerCase() === selectedCategory.toLowerCase())
+    );
+    
+    // If no products found for this range in this category, don't show it
+    if (rangeProducts.length === 0) {
+      return false;
+    }
+    
+    // For color filtering, check if any product in this range has a color that matches the filter
+    let colorMatch = true;
+    if (activeColors.length > 0) {
+      const productColors = rangeProducts.map(p => p.colorName);
+      colorMatch = productColors.some(color => 
+        activeColors.some(activeColor => 
+          color.toLowerCase().includes(activeColor.toLowerCase()) || 
+          activeColor.toLowerCase().includes(color.toLowerCase())
         )
       );
-      
-      // Example: filter by weave type
-      const hasMatchingWeave = Object.keys(activeFilters).some(filter => 
-        range.id.toLowerCase().includes(filter.toLowerCase()) && activeFilters[filter]
+    }
+    
+    // For room type filtering, check if any product in this range is suitable for the filtered room
+    let roomMatch = true;
+    if (activeRooms.length > 0) {
+      roomMatch = rangeProducts.some(product => 
+        product.roomTypes.some(room => 
+          activeRooms.some(activeRoom => 
+            room.toLowerCase().includes(activeRoom.toLowerCase()) || 
+            activeRoom.toLowerCase().includes(room.toLowerCase())
+          )
+        )
       );
-      
-      return hasMatchingColor || hasMatchingWeave;
-    });
+    }
+    
+    // For weave type filtering, check if any product has the filtered weave type
+    let weaveMatch = true;
+    if (activeWeaves.length > 0) {
+      weaveMatch = rangeProducts.some(product => 
+        product.weaveTypes.some(weave => 
+          activeWeaves.some(activeWeave => 
+            weave.toLowerCase().includes(activeWeave.toLowerCase()) || 
+            activeWeave.toLowerCase().includes(weave.toLowerCase())
+          )
+        )
+      );
+    }
+    
+    // All active filter criteria must match for the range to be displayed
+    return colorMatch && roomMatch && weaveMatch;
   };
 
   // Handle loading and error states
@@ -1213,23 +1316,88 @@ const RugBuilder = () => {
             {/* No preview section here - as requested */}
             
             <div className="p-4 border-b bg-gray-50 sticky top-0 z-10">
+              {/* Material Category filter (moved to top) */}
               <div className="flex flex-wrap gap-2">
                 <div className="flex items-center mr-4">
-                  <span className="text-sm font-medium mr-2">Filter by:</span>
+                  <span className="text-sm font-medium mr-2">Material:</span>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  {filterCategories.colors.map(color => (
+                  <Button 
+                    key="all"
+                    variant={!selectedCategory || selectedCategory === 'all' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => setSelectedCategory('all')}
+                    className="text-xs h-8"
+                  >
+                    All Materials
+                  </Button>
+                  {materialCategories.map(category => (
                     <Button 
-                      key={color}
-                      variant={activeFilters[color] ? "default" : "outline"} 
+                      key={category.id}
+                      variant={selectedCategory === category.id ? "default" : "outline"} 
                       size="sm"
-                      onClick={() => setActiveFilters({...activeFilters, [color]: !activeFilters[color]})}
+                      onClick={() => setSelectedCategory(category.id)}
                       className="text-xs h-8"
                     >
-                      {color}
+                      {category.name}
                     </Button>
                   ))}
+                </div>
+              </div>
+              
+              {/* Colour filter with circles instead of text */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex items-center mr-4">
+                  <span className="text-sm font-medium mr-2">Colour:</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {filterCategories.colors.map(color => {
+                    // Map color names to hex values
+                    const getColorHex = (colorName: string) => {
+                      const colorMap: {[key: string]: string} = {
+                        'Natural': '#D6C7A9',
+                        'Brown': '#8B4513',
+                        'Beige': '#F5F5DC',
+                        'Red': '#B22222',
+                        'Grey': '#808080',
+                        'Black': '#222222',
+                        'Green': '#2E8B57',
+                        'Blue': '#4682B4',
+                        'Cream': '#FFFDD0',
+                        'Orange': '#FF8C00',
+                        'White': '#F8F8FF',
+                        'Yellow': '#FFD700',
+                        'Purple': '#800080',
+                        'Pink': '#FFC0CB',
+                        'Gold': '#D4AF37',
+                        'Silver': '#C0C0C0',
+                        'Tan': '#D2B48C',
+                        'Charcoal': '#36454F',
+                        'Navy': '#000080',
+                        'Forest': '#228B22',
+                        'Burgundy': '#800020',
+                        'Stone': '#A9A9A9',
+                        'Flax': '#EEDC82',
+                        'Mushroom': '#8B8589',
+                        'Slate': '#708090'
+                      };
+                      return colorMap[colorName] || '#CCCCCC';
+                    };
+                    
+                    const colorHex = getColorHex(color);
+                    
+                    return (
+                      <div 
+                        key={color}
+                        onClick={() => setActiveFilters({...activeFilters, [color]: !activeFilters[color]})}
+                        className={`w-6 h-6 rounded-full cursor-pointer border transition-all ${activeFilters[color] ? 'ring-2 ring-offset-2 ring-brand-sage border-transparent scale-110' : 'border-gray-300 hover:scale-110'}`}
+                        style={{ backgroundColor: colorHex, boxShadow: activeFilters[color] ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }}
+                        title={color}
+                      />
+                    );
+                  })}
                 </div>
               </div>
               
@@ -1319,15 +1487,29 @@ const RugBuilder = () => {
                       key={range.id}
                       className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     >
-                      <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                      <div 
+                        className="aspect-[4/3] bg-gray-100 flex items-center justify-center"
+                        key={`${range.id}-${selectedColorIndex}-${forceUpdate}`} // Force re-render when these values change
+                      >
                         {/* Use the selected color's image or the first color by default */}
                         {(() => {
-                          // Get the selected color or default to first color
+                          // Get the selected color or default to first color 
                           const isRangeSelected = options.material.range === range.id;
-                          const colorToShow = isRangeSelected && options.material.color ? options.material.color : range.colors[0];
                           
+                          // Use the selected color index to determine which swatch to show in the main image
+                          const colorToShow = isRangeSelected && selectedColorIndex !== null && range.colors[selectedColorIndex] 
+                            ? range.colors[selectedColorIndex] 
+                            : (isRangeSelected && options.material.color 
+                                ? options.material.color 
+                                : range.colors[0]);
+                          
+                          // When in "All Materials" view, we need to find the correct category
+                          const categoryToUse = selectedCategory === 'all' 
+                            ? products.find(p => p.range === range.name && p.colorName === colorToShow)?.category || materialCategories[0].name
+                            : selectedCategory;
+                            
                           // Get the image for this color
-                          const imageSrc = getProductImage(selectedCategory, range.name, colorToShow);
+                          const imageSrc = getProductImage(categoryToUse, range.name, colorToShow);
                           
                           return imageSrc ? (
                             <img 
@@ -1365,21 +1547,46 @@ const RugBuilder = () => {
                         
                          <div className="mt-3 flex flex-wrap gap-2">
                           {range.colors.map((color, index) => {
-                            // Try to get product image using the context helper
+                            // Find the correct category for this range and color
+                            const categoryToUse = selectedCategory === 'all' 
+                              ? products.find(p => p.range === range.name && p.colorName === color)?.category || materialCategories[0].name
+                              : selectedCategory;
+                                
+                            // Try to get product image using the context helper with the correct category
                             const swatchImage = getProductImage(
-                              selectedCategory || "", 
+                              categoryToUse || "", 
                               range.name,
                               color
                             );
+
+                            // Used to determine if filtered
+                            const activeColors = Object.keys(activeFilters).filter(key => 
+                              activeFilters[key] && filterCategories.colors.includes(key)
+                            );
+                            
+                            // Check if this color is filtered out
+                            const isFiltered = activeColors.length > 0 && !activeColors.some(filterColor => 
+                              color.toLowerCase().includes(filterColor.toLowerCase()) || 
+                              filterColor.toLowerCase().includes(color.toLowerCase())
+                            );
+                            
+                            // If filtered out by color filters, don't show this swatch
+                            if (isFiltered) return null;
                             
                             return (
                               <div
                                 key={`${color}-${index}`}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent triggering parent clicks
+                                  // For better visual feedback
+                                  const target = e.currentTarget;
+                                  target.classList.add('scale-125');
+                                  setTimeout(() => target.classList.remove('scale-125'), 200);
+                                  
                                   handleMaterialRangeSelect(range.id);
                                   handleMaterialColorSelect(color, index, false); // Keep overlay open
                                 }}
-                                className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : 'border-gray-200'} rounded-full w-8 h-8 cursor-pointer transition-all hover:scale-110`}
+                                className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage ring-offset-1 scale-110 shadow-md' : 'border-gray-200'} rounded-full w-8 h-8 cursor-pointer transition-all hover:scale-110`}
                                 title={color}
                               >
                                 {swatchImage ? (
@@ -1392,7 +1599,7 @@ const RugBuilder = () => {
                                       e.currentTarget.style.display = 'none';
                                       e.currentTarget.parentElement!.style.backgroundColor = 
                                         color === "Natural" ? "#D6C7A9" : 
-                                        color === "Bleached" ? "#E8E4D9" :
+                                        color === "Bleached" ? "#E8E4D9":
                                         color === "Grey" ? "#A9A9A9" : 
                                         "#D6C7A9";
                                     }}
@@ -1402,7 +1609,7 @@ const RugBuilder = () => {
                                     className="w-full h-full"
                                     style={{ 
                                       backgroundColor: color === "Natural" ? "#D6C7A9" : 
-                                                    color === "Bleached" ? "#E8E4D9" :
+                                                    color === "Bleached" ? "#E8E4D9":
                                                     color === "Grey" ? "#A9A9A9" : 
                                                     "#D6C7A9",
                                     }}
@@ -1410,7 +1617,7 @@ const RugBuilder = () => {
                                 )}
                               </div>
                             );
-                          })}
+                          }).filter(Boolean)}
                         </div>
                         
                         <Button
@@ -1436,20 +1643,49 @@ const RugBuilder = () => {
                       className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <div className="flex">
-                        <div className="w-32 h-24 overflow-hidden">
+                        <div 
+                          className="w-32 h-24 overflow-hidden"
+                          key={`list-${range.id}-${selectedColorIndex}-${forceUpdate}`} // Force re-render when these values change
+                        >
                           {/* Use the selected color's image or the first color by default */}
                           {(() => {
                             // Get the selected color or default to first color
-                            const isRangeSelected = options.material.range === range.id;
-                            const colorToShow = isRangeSelected && options.material.color ? options.material.color : range.colors[0];
+                            const isListRangeSelected = options.material.range === range.id;
                             
+                            // Get colors that would remain after applying active filters
+                            const activeColors = Object.keys(activeFilters).filter(key => 
+                              activeFilters[key] && filterCategories.colors.includes(key)
+                            );
+                            
+                            // Filter range colors if there are color filters active
+                            const filteredColors = activeColors.length > 0 ? 
+                              range.colors.filter(color => 
+                                activeColors.some(filterColor => 
+                                  color.toLowerCase().includes(filterColor.toLowerCase()) || 
+                                  filterColor.toLowerCase().includes(color.toLowerCase())
+                                )
+                              ) : range.colors;
+                            
+                            // Use the first available color after filtering, or the selected color if available
+                            const listColorToShow = isListRangeSelected && selectedColorIndex !== null && 
+                                filteredColors.includes(range.colors[selectedColorIndex]) 
+                              ? range.colors[selectedColorIndex] 
+                              : (isListRangeSelected && options.material.color && filteredColors.includes(options.material.color)
+                                  ? options.material.color 
+                                  : filteredColors[0] || range.colors[0]); // Fallback to unfiltered colors if all filtered out
+                            
+                            // When in "All Materials" view, we need to find the correct category
+                            const listCategoryToUse = selectedCategory === 'all' 
+                              ? products.find(p => p.range === range.name && p.colorName === listColorToShow)?.category || materialCategories[0].name
+                              : selectedCategory;
+                              
                             // Get the image for this color
-                            const imageSrc = getProductImage(selectedCategory, range.name, colorToShow);
+                            const listImageSrc = getProductImage(listCategoryToUse, range.name, listColorToShow);
                             
-                            return imageSrc ? (
+                            return listImageSrc ? (
                               <img 
-                                src={imageSrc}
-                                alt={`${range.name} - ${colorToShow}`}
+                                src={listImageSrc}
+                                alt={`${range.name} - ${listColorToShow}`}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   // Fallback if image fails to load
@@ -1469,7 +1705,7 @@ const RugBuilder = () => {
                             );
                           })()}
                         </div>
-                        
+                      
                         <div className="p-3 flex-1">
                           <div className="flex justify-between items-start">
                             <div>
@@ -1492,11 +1728,17 @@ const RugBuilder = () => {
                               return (
                                 <div
                                   key={`${color}-${index}`}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent triggering parent clicks
+                                    // For better visual feedback
+                                    const target = e.currentTarget;
+                                    target.classList.add('scale-125');
+                                    setTimeout(() => target.classList.remove('scale-125'), 200);
+                                    
                                     handleMaterialRangeSelect(range.id);
                                     handleMaterialColorSelect(color, index, false); // Keep overlay open
                                   }}
-                                  className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage' : 'border-gray-200'} rounded-full w-6 h-6 cursor-pointer transition-all hover:scale-110`}
+                                  className={`border overflow-hidden ${selectedColorIndex === index && options.material.range === range.id ? 'ring-2 ring-brand-sage ring-offset-1 scale-110 shadow-md' : 'border-gray-200'} rounded-full w-6 h-6 cursor-pointer transition-all hover:scale-110`}
                                   title={color}
                                 >
                                   {swatchImage ? (
