@@ -126,9 +126,9 @@ const FullScreenOverlay = ({
     <>
       {/* Material Selection Overlay */}
       <Sheet open={materialOverlayOpen} onOpenChange={setMaterialOverlayOpen}>
-        <SheetContent side="bottom" className="h-[90vh] max-w-none p-0">
+        <SheetContent side="bottom" className="h-screen top-0 rounded-none max-w-none p-0">
           <div className="flex flex-col h-full">
-            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background z-20">
+            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-20">
               <h3 className="font-serif text-xl">
                 {selectedCategory && selectedCategory !== 'all' ? `Select ${materialCategories.find(c => c.id === selectedCategory)?.name} Range` : "Select Material Range"}
               </h3>
@@ -145,7 +145,12 @@ const FullScreenOverlay = ({
                     variant={!selectedCategory || selectedCategory === 'all' ? "default" : "outline"} 
                     size="sm" 
                     onClick={() => setSelectedCategory('all')} 
-                    className="text-xs h-8"
+                    className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
+                    style={{
+                      borderColor: (!selectedCategory || selectedCategory === 'all') ? 'transparent' : 'hsl(var(--border))',
+                      backgroundColor: (!selectedCategory || selectedCategory === 'all') ? 'hsl(var(--primary))' : 'transparent',
+                      color: (!selectedCategory || selectedCategory === 'all') ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                    }}
                   >
                     All Materials
                   </Button>
@@ -155,7 +160,12 @@ const FullScreenOverlay = ({
                       variant={selectedCategory === cat.id ? "default" : "outline"} 
                       size="sm" 
                       onClick={() => setSelectedCategory(cat.id)} 
-                      className="text-xs h-8"
+                      className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
+                      style={{
+                        borderColor: selectedCategory === cat.id ? 'transparent' : 'hsl(var(--border))',
+                        backgroundColor: selectedCategory === cat.id ? 'hsl(var(--primary))' : 'transparent',
+                        color: selectedCategory === cat.id ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                      }}
                     >
                       {cat.name}
                     </Button>
@@ -198,11 +208,16 @@ const FullScreenOverlay = ({
                 <div className="flex flex-wrap gap-2">
                   {filterCategories.roomTypes.map(room => (
                     <Button 
-                      key={room} 
-                      variant={activeFilters[room] ? "default" : "outline"} 
+                      key={room}
+                      variant="outline"
                       size="sm" 
                       onClick={() => handleRoomFilterToggle(room)} 
-                      className="text-xs h-8"
+                      className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
+                      style={{
+                        borderColor: activeFilters[room] ? 'transparent' : 'hsl(var(--border))',
+                        backgroundColor: activeFilters[room] ? 'hsl(var(--primary))' : 'transparent',
+                        color: activeFilters[room] ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                      }}
                     >
                       {room}
                     </Button>
@@ -357,9 +372,9 @@ const FullScreenOverlay = ({
 
       {/* Border Selection Overlay */}
       <Sheet open={borderOverlayOpen} onOpenChange={setBorderOverlayOpen}>
-        <SheetContent side="bottom" className="h-[90vh] max-w-none p-0">
+        <SheetContent side="bottom" className="h-screen top-0 rounded-none max-w-none p-0">
           <div className="flex flex-col h-full">
-            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background z-20">
+            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-20">
               <h3 className="font-serif text-xl">
                 Select {isInnerBorder ? "Inner" : selectedBorderType === "outer" ? "Outer" : ""} Border Material
               </h3>
