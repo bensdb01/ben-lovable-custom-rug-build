@@ -1,10 +1,12 @@
 // FullScreenOverlay.tsx
-import React, { Dispatch, SetStateAction, useMemo } from 'react';
+import React, { useState, useMemo, Dispatch, SetStateAction } from 'react';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Grid, List } from "lucide-react";
+import { X, Grid, List, FilterX } from "lucide-react";
 import { MaterialCategory, Range, Product, FilterCategories, RugOptions, BorderMaterial } from "@/lib/types";
+import FilterSection from "./FilterSection";
+import EmptyPlaceholder from "./EmptyPlaceholder";
 
 export interface FullScreenOverlayProps {
   materialOverlayOpen: boolean;
@@ -34,7 +36,7 @@ export interface FullScreenOverlayProps {
   isInnerBorder: boolean;
 }
 
-const FullScreenOverlay = ({
+const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({  
   materialOverlayOpen,
   setMaterialOverlayOpen,
   selectedCategory,
@@ -60,10 +62,13 @@ const FullScreenOverlay = ({
   handleBorderMaterialSelect,
   handleBorderColorSelect,
   isInnerBorder,
-}: FullScreenOverlayProps) => {
+}) => {
+  const [isFilterOpen, setIsFilterOpen] = React.useState<false | 'material' | 'color' | 'room'>(false);
 
   const getColorHex = (colorName: string) => {
-    const colorVariable = `--color-${colorName.toLowerCase().replace(/\s+/g, '-')}`;
+    // Extract only the color name part if there's a number embedded like "Red27"
+    const cleanColorName = colorName.replace(/\d+/g, '');
+    const colorVariable = `--color-${cleanColorName.toLowerCase().replace(/\s+/g, '-')}`;
     if (typeof window !== 'undefined') {
       const cssVarValue = getComputedStyle(document.documentElement).getPropertyValue(colorVariable);
       if (cssVarValue) return cssVarValue.trim();
@@ -111,7 +116,7 @@ const FullScreenOverlay = ({
     });
 
     if (!relevantProduct || !Array.isArray(relevantProduct.colors)) {
-      return false; 
+      return false;
     }
 
     return relevantProduct.colors.some(generalProductColor =>
@@ -132,156 +137,75 @@ const FullScreenOverlay = ({
               <h3 className="font-serif text-xl">
                 {selectedCategory && selectedCategory !== 'all' ? `Select ${materialCategories.find(c => c.id === selectedCategory)?.name} Range` : "Select Material Range"}
               </h3>
-              <Button variant="ghost" size="icon" onClick={() => setMaterialOverlayOpen(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setMaterialOverlayOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="p-4 border-b bg-gray-50 sticky top-[calc(3.5rem+1px)] z-10">
-              <div className="grid grid-cols-[auto,1fr] gap-4">
-                {/* Material Filter */}
-                <div className="text-sm font-medium whitespace-nowrap pt-1">Material:</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    key="all-materials" 
-                    variant={!selectedCategory || selectedCategory === 'all' ? "default" : "outline"} 
-                    size="sm" 
-                    onClick={() => setSelectedCategory('all')} 
-                    className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
-                    style={{
-                      borderColor: (!selectedCategory || selectedCategory === 'all') ? 'transparent' : 'hsl(var(--border))',
-                      backgroundColor: (!selectedCategory || selectedCategory === 'all') ? 'hsl(var(--primary))' : 'transparent',
-                      color: (!selectedCategory || selectedCategory === 'all') ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
-                    }}
-                  >
-                    All Materials
-                  </Button>
-                  {materialCategories.map(cat => (
-                    <Button 
-                      key={cat.id} 
-                      variant={selectedCategory === cat.id ? "default" : "outline"} 
-                      size="sm" 
-                      onClick={() => setSelectedCategory(cat.id)} 
-                      className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
-                      style={{
-                        borderColor: selectedCategory === cat.id ? 'transparent' : 'hsl(var(--border))',
-                        backgroundColor: selectedCategory === cat.id ? 'hsl(var(--primary))' : 'transparent',
-                        color: selectedCategory === cat.id ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
-                      }}
-                    >
-                      {cat.name}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* Color Filter */}
-                <div className="text-sm font-medium whitespace-nowrap pt-1">Colour:</div>
-                <div className="flex flex-wrap gap-3 items-center pl-2">
-                  {filterCategories.colors.map(color => (
-                    <div 
-                      key={color} 
-                      onClick={() => handleColorFilterToggle(color)} 
-                      className={`relative w-8 h-8 rounded-full cursor-pointer transition-all ${
-                        activeFilters[color] 
-                          ? 'scale-110 ring-2 ring-offset-2 ring-brand-sage/90' 
-                          : 'opacity-60 hover:opacity-100 hover:scale-110'
-                      }`}
-                      style={{ 
-                        backgroundColor: getColorHex(color),
-                        boxShadow: activeFilters[color] 
-                          ? '0 2px 8px rgba(0, 0, 0, 0.25)' 
-                          : '0 1px 3px rgba(0, 0, 0, 0.1)',
-                        transition: 'all 0.2s ease-in-out',
-                        border: activeFilters[color] 
-                          ? '2px solid white' 
-                          : '2px solid rgba(0, 0, 0, 0.1)'
-                      }} 
-                      title={color}
-                    >
-                      {activeFilters[color] && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-sage rounded-full border-2 border-white" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Room Filter */}
-                <div className="text-sm font-medium whitespace-nowrap pt-1">Room:</div>
-                <div className="flex flex-wrap gap-2">
-                  {filterCategories.roomTypes.map(room => (
-                    <Button 
-                      key={room}
-                      variant="outline"
-                      size="sm" 
-                      onClick={() => handleRoomFilterToggle(room)} 
-                      className="text-xs h-8 min-w-[100px] flex-1 sm:flex-none sm:min-w-0 border-2 border-transparent"
-                      style={{
-                        borderColor: activeFilters[room] ? 'transparent' : 'hsl(var(--border))',
-                        backgroundColor: activeFilters[room] ? 'hsl(var(--primary))' : 'transparent',
-                        color: activeFilters[room] ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
-                      }}
-                    >
-                      {room}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs h-8" 
-                    onClick={() => {
-                      setActiveFilters({});
-                      setSelectedCategory('all');
-                    }}
-                  >
-                    Clear All Filters
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    {Object.values(activeFilters).filter(Boolean).length} filter{Object.values(activeFilters).filter(Boolean).length !== 1 ? 's' : ''} applied
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant={viewMode === "grid" ? "default" : "ghost"} 
-                    size="sm" 
-                    className="text-xs h-8 flex items-center gap-1" 
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid className="h-3 w-3" /> Grid
-                  </Button>
-                  <Button 
-                    variant={viewMode === "list" ? "default" : "ghost"} 
-                    size="sm" 
-                    className="text-xs h-8 flex items-center gap-1" 
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-3 w-3" /> List
-                  </Button>
-                </div>
-              </div>
+            <FilterSection
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              materialCategories={materialCategories}
+              filterCategories={filterCategories}
+              activeFilters={activeFilters}
+              setActiveFilters={setActiveFilters}
+              isFilterOpen={isFilterOpen}
+              setIsFilterOpen={setIsFilterOpen}
+              handleColorFilterToggle={handleColorFilterToggle}
+              handleRoomFilterToggle={handleRoomFilterToggle}
+              getColorHex={getColorHex}
+              activeColorFilters={activeColorFilters}
+            />
+            
+            <div className="flex justify-end p-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                className="text-xs h-8 flex items-center gap-1 mr-2"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-3 w-3" /> Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                className="text-xs h-8 flex items-center gap-1"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-3 w-3" /> List
+              </Button>
             </div>
-
+            
             <ScrollArea className="flex-1 p-4">
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                  {getFilteredRanges().map((range) => {
+                  {getFilteredRanges().length === 0 ? (
+                    <div className="col-span-full">
+                      <EmptyPlaceholder 
+                        viewMode="grid" 
+                        clearFilters={() => {
+                          setActiveFilters({});
+                          setSelectedCategory('all');
+                        }} 
+                      />
+                    </div>
+                  ) : (
+                    getFilteredRanges().map((range) => {
                     const isCurrentRangeSelected = options.material.range === range.id;
                     const displayableSwatches = range.colors.filter(colorName => isSwatchDisplayable(colorName, range.name));
 
-                    if (displayableSwatches.length === 0 && activeColorFilters.length > 0) return null;
-                    
-                    let thumbnailColor = displayableSwatches[0]; 
+                    if (displayableSwatches.length === 0 && Object.keys(activeFilters).some(key => filterCategories.colors.includes(key))) return null;
+
+                    let thumbnailColor = displayableSwatches[0];
                     if (isCurrentRangeSelected && options.material.color && displayableSwatches.includes(options.material.color)) {
                       thumbnailColor = options.material.color;
                     }
-                    if (!thumbnailColor && range.colors.length > 0) thumbnailColor = range.colors[0]; 
+                    if (!thumbnailColor && range.colors.length > 0) thumbnailColor = range.colors[0];
 
-                    const categoryForImage = selectedCategory === 'all' 
-                        ? products.find(p => p.range === range.name && p.colorName === thumbnailColor)?.category || materialCategories[0]?.id || "" 
-                        : selectedCategory; 
-                    
+                    const categoryForImage = selectedCategory === 'all'
+                         ? products.find(p => p.range === range.name && p.colorName === thumbnailColor)?.category || materialCategories[0]?.id || ""
+                         : selectedCategory;
+
                     const imageSrc = thumbnailColor ? getProductImage(categoryForImage, range.name, thumbnailColor) : undefined;
 
 
@@ -289,21 +213,21 @@ const FullScreenOverlay = ({
                       <div key={range.id} className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                         <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center" key={`${range.id}-${thumbnailColor}-gridthumb`}>
                           {imageSrc ? <img src={imageSrc} alt={`${range.name} - ${thumbnailColor}`} className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; if(t.parentElement && thumbnailColor) {t.style.display='none'; t.parentElement.style.backgroundColor = getColorHex(thumbnailColor);} else if(t.parentElement) t.parentElement.style.backgroundColor='#ECECEC';}} />
-                            : <div className="w-full h-full" style={{ backgroundColor: thumbnailColor ? getColorHex(thumbnailColor) : '#ECECEC' }} />}
+                            : <div className="w-full h-full" style={{ backgroundColor: thumbnailColor ? getColorHex(thumbnailColor) : '#ECECEC', fontSize: 0, color: 'transparent' }} aria-hidden="true"></div>}
                         </div>
                         <div className="p-3">
                           <div className="flex justify-between items-start">
                             <div><h4 className="font-medium text-sm">{range.name}</h4><p className="text-xs text-muted-foreground mt-1">{displayableSwatches.length} colors available</p></div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {displayableSwatches.map(colorName => { 
-                              const originalIndex = range.colors.indexOf(colorName); 
+                            {displayableSwatches.map(colorName => {
+                              const originalIndex = range.colors.indexOf(colorName);
                               const swatchCat = selectedCategory === 'all' ? products.find(p => p.range === range.name && p.colorName === colorName)?.category || materialCategories[0]?.id || "" : selectedCategory;
                               const swatchImg = getProductImage(swatchCat, range.name, colorName);
                               return (
                                 <div key={`${range.id}-${colorName}`} onClick={(e) => { e.stopPropagation(); handleMaterialRangeSelect(range.id); handleMaterialColorSelect(colorName, originalIndex); }} className={`border overflow-hidden ${options.material.color === colorName && isCurrentRangeSelected ? 'ring-2 ring-brand-sage ring-offset-1 scale-110 shadow-md' : 'border-gray-200'} rounded-full w-8 h-8 cursor-pointer transition-all hover:scale-110`} title={colorName}>
                                   {swatchImg ? <img src={swatchImg} alt={colorName} className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; if(t.parentElement) {t.style.display='none'; t.parentElement.style.backgroundColor = getColorHex(colorName);}}}/>
-                                    : <div className="w-full h-full" style={{ backgroundColor: getColorHex(colorName) }} />}
+                                    : <div className="w-full h-full" style={{ backgroundColor: getColorHex(colorName), fontSize: 0, color: 'transparent' }} aria-hidden="true"></div>}
                                 </div>
                               );
                             })}
@@ -312,16 +236,26 @@ const FullScreenOverlay = ({
                         </div>
                       </div>
                     );
-                  })}
+                    })
+                  )}
                 </div>
-              ) : ( 
+              ) : (
                 <div className="space-y-4">
-                  {getFilteredRanges().map((range) => {
+                  {getFilteredRanges().length === 0 ? (
+                    <EmptyPlaceholder 
+                      viewMode="list" 
+                      clearFilters={() => {
+                        setActiveFilters({});
+                        setSelectedCategory('all');
+                      }}
+                    />
+                  ) : (
+                    getFilteredRanges().map((range) => {
                     const isCurrentRangeSelected = options.material.range === range.id;
                     const displayableSwatches = range.colors.filter(colorName => isSwatchDisplayable(colorName, range.name));
 
-                    if (displayableSwatches.length === 0 && activeColorFilters.length > 0) return null;
-                    
+                    if (displayableSwatches.length === 0 && Object.keys(activeFilters).some(key => filterCategories.colors.includes(key))) return null;
+
                     let thumbnailColor = displayableSwatches[0];
                     if (isCurrentRangeSelected && options.material.color && displayableSwatches.includes(options.material.color)) {
                       thumbnailColor = options.material.color;
@@ -336,7 +270,7 @@ const FullScreenOverlay = ({
                         <div className="flex">
                           <div className="w-32 h-24 overflow-hidden flex-shrink-0" key={`list-${range.id}-${thumbnailColor}-listthumb`}>
                             {imageSrc ? <img src={imageSrc} alt={`${range.name} - ${thumbnailColor}`} className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; if(t.parentElement && thumbnailColor) {t.style.display='none'; t.parentElement.style.backgroundColor = getColorHex(thumbnailColor);} else if(t.parentElement) t.parentElement.style.backgroundColor='#ECECEC'; }} />
-                              : <div className="w-full h-full" style={{ backgroundColor: thumbnailColor ? getColorHex(thumbnailColor) : '#ECECEC' }} />}
+                              : <div className="w-full h-full" style={{ backgroundColor: thumbnailColor ? getColorHex(thumbnailColor) : '#ECECEC', fontSize: 0, color: 'transparent' }} aria-hidden="true"></div>}
                           </div>
                           <div className="p-3 flex-1">
                             <h4 className="font-medium">{range.name}</h4>
@@ -349,7 +283,7 @@ const FullScreenOverlay = ({
                                 return (
                                   <div key={`list-swatch-${range.id}-${colorName}`} onClick={(e) => { e.stopPropagation(); handleMaterialRangeSelect(range.id); handleMaterialColorSelect(colorName, originalIndex); }} className={`border overflow-hidden ${options.material.color === colorName && isCurrentRangeSelected ? 'ring-2 ring-brand-sage ring-offset-1 scale-110 shadow-md' : 'border-gray-200'} rounded-full w-6 h-6 cursor-pointer transition-all hover:scale-110`} title={colorName}>
                                     {swatchImg ? <img src={swatchImg} alt={colorName} className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; if(t.parentElement){t.style.display='none'; t.parentElement.style.backgroundColor = getColorHex(colorName);}}}/>
-                                      : <div className="w-full h-full" style={{ backgroundColor: getColorHex(colorName) }} />}
+                                      : <div className="w-full h-full" style={{ backgroundColor: getColorHex(colorName), fontSize: 0, color: 'transparent' }} aria-hidden="true"></div>}
                                   </div>
                                 );
                               })}
@@ -362,7 +296,8 @@ const FullScreenOverlay = ({
                         </div>
                       </div>
                     );
-                  })}
+                    })
+                  )}
                 </div>
               )}
             </ScrollArea>
@@ -378,54 +313,73 @@ const FullScreenOverlay = ({
               <h3 className="font-serif text-xl">
                 Select {isInnerBorder ? "Inner" : selectedBorderType === "outer" ? "Outer" : ""} Border Material
               </h3>
-              <Button variant="ghost" size="icon" onClick={() => setBorderOverlayOpen(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setBorderOverlayOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="p-4 border-b bg-gray-50 sticky top-[calc(3.5rem+1px)] z-10">
-                <div className="flex flex-wrap gap-2">
-                    <div className="flex items-center mr-4"><span className="text-sm font-medium mr-2">Filter by Colour:</span></div>
-                    <div className="flex flex-wrap gap-2">
-                        {filterCategories.colors.map(color => <Button key={color} variant={activeFilters[color] ? "default" : "outline"} size="sm" onClick={() => setActiveFilters(prev => ({...prev, [color]: !prev[color]}))} className="text-xs h-8">{color}</Button>)}
-                    </div>
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setActiveFilters({})}>Clear All</Button>
-                    <span className="text-xs text-muted-foreground">{Object.keys(activeFilters).filter(k => activeFilters[k]).length} filters applied</span>
-                </div>
-            </div>
+            <FilterSection
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              materialCategories={materialCategories}
+              filterCategories={filterCategories}
+              activeFilters={activeFilters}
+              setActiveFilters={setActiveFilters}
+              isFilterOpen={isFilterOpen}
+              setIsFilterOpen={setIsFilterOpen}
+              handleColorFilterToggle={(color) => setActiveFilters(prev => ({...prev, [color]: !prev[color]}))} 
+              handleRoomFilterToggle={(room) => {}}
+              getColorHex={getColorHex}
+              activeColorFilters={activeColorFilters}
+            />
             <ScrollArea className="flex-1 p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {borderMaterials.filter(material => {
-                        const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
-                        if (currentActiveColorFilters.length === 0) return true;
-                        return material.colors.some(color => currentActiveColorFilters.includes(color));
-                    }).map(material => (
-                        <div key={material.id} className="border rounded-lg overflow-hidden">
-                            <div className="p-4 border-b bg-gray-50"><h4 className="font-medium">{material.name}</h4><p className="text-xs text-muted-foreground mt-1">{material.description}</p></div>
-                            <div className="p-4">
-                                <p className="text-sm font-medium mb-3">Available Colors:</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    {material.colors.filter(color => {
-                                        const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
-                                        if (currentActiveColorFilters.length === 0) return true;
-                                        return currentActiveColorFilters.includes(color);
-                                    }).map(color => (
-                                        <div key={`${material.id}-${color}`} className="border p-3 rounded-lg cursor-pointer hover:shadow-sm text-center transition-all hover:scale-105 flex flex-col items-center" onClick={() => { handleBorderMaterialSelect(material.id); handleBorderColorSelect(color); }}>
-                                            <div className="w-full h-10 rounded mb-2 mx-auto border" style={{ backgroundColor: getColorHex(color) }}></div>
-                                            <span className="text-xs">{color}</span>
-                                        </div>
-                                    ))}
-                                     {material.colors.filter(color => {
-                                        const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
-                                        if (currentActiveColorFilters.length === 0) return true;
-                                        return currentActiveColorFilters.includes(color);
-                                      }).length === 0 && Object.values(activeFilters).some(v => v) && ( 
-                                        <p className="text-xs text-muted-foreground col-span-full text-center">No colors match the current filter for this material.</p>
-                                      )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {borderMaterials.filter(material => {
+                  const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
+                  if (currentActiveColorFilters.length === 0) return true;
+                  return material.colors.some(color => currentActiveColorFilters.includes(color));
+                }).map(material => (
+                  <div key={material.id} className="border rounded-lg overflow-hidden">
+                    <div className="p-4 border-b bg-gray-50">
+                      <h4 className="font-medium">{material.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{material.description}</p>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-sm font-medium mb-3">Available Colors:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {material.colors.filter(color => {
+                          const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
+                          if (currentActiveColorFilters.length === 0) return true;
+                          return currentActiveColorFilters.includes(color);
+                        }).map(color => (
+                          <div 
+                            key={`${material.id}-${color}`} 
+                            className="border p-3 rounded-lg cursor-pointer hover:shadow-sm text-center transition-all hover:scale-105 flex flex-col items-center" 
+                            onClick={() => { 
+                              handleBorderMaterialSelect(material.id); 
+                              handleBorderColorSelect(color); 
+                            }}
+                          >
+                            <div 
+                              className="w-full h-10 rounded mb-2 mx-auto border" 
+                              style={{ backgroundColor: getColorHex(color) }}
+                            ></div>
+                            <span className="text-xs">{color}</span>
+                          </div>
+                        ))}
+                        {material.colors.filter(color => {
+                          const currentActiveColorFilters = Object.keys(activeFilters).filter(key => activeFilters[key] && filterCategories.colors.includes(key));
+                          if (currentActiveColorFilters.length === 0) return true;
+                          return currentActiveColorFilters.includes(color);
+                        }).length === 0 && Object.values(activeFilters).some(v => v) && (
+                          <p className="text-xs text-muted-foreground col-span-full text-center">
+                            No colors match the current filter for this material.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </ScrollArea>
           </div>
         </SheetContent>

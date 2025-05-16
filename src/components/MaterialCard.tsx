@@ -16,11 +16,11 @@ interface MaterialCardProps {
 const MaterialCard = ({ name, description, onSelect }: MaterialCardProps) => {
   return (
     <div 
-      className="border p-4 rounded-lg cursor-pointer hover:bg-gray-50"
+      className="w-full max-w-[300px] mx-auto sm:max-w-none sm:w-auto md:max-w-[320px] lg:max-w-[280px] xl:max-w-[300px] 2xl:max-w-[320px] border p-4 rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-200 flex flex-col h-full"
       onClick={onSelect}
     >
-      <h3 className="font-medium">{name}</h3>
-      <p className="text-sm text-gray-500">{description}</p>
+      <h3 className="font-medium text-base sm:text-lg">{name}</h3>
+      <p className="text-sm text-gray-500 mt-1 flex-grow">{description}</p>
     </div>
   );
 };
